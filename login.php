@@ -1,8 +1,8 @@
 // Part 2. Defense
 
 //Modifications:
-// Use stored procedure to fetch user details securely
-
+// 1.Use stored procedure to fetch user details securely
+// 2.Verify hashed password for security
 
 
 <?php
@@ -11,7 +11,7 @@ session_start();
 $servername = "localhost";
 $username = "root";
 $password = "";
-$dbname = "testdb";
+$dbname = "db_php_test";
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);
@@ -22,12 +22,8 @@ if ($conn->connect_error) {
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $user = $_POST['username'];
-    $pass = $_POST['password'];
-    
-    // VULNERABLE QUERY (Allows SQL Injection)
-    // $sql = "SELECT * FROM users WHERE username = '$user' AND password = '$pass'";
-    // $result = $conn->query($sql);
+    $user = trim($_POST['username']); // MODIFIED: Trim input to prevent whitespace issues
+    $pass = trim($_POST['password']);
     
     // MODIFIED: Use stored procedure to fetch user details securely
     $stmt = $conn->prepare("CALL GetUserByUsername(?)");
@@ -36,12 +32,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $result = $stmt->get_result();
     
     if ($result->num_rows > 0) {
-        $_SESSION['user'] = $user;
-        echo "Login successful!";
+        $row = $result->fetch_assoc();
+        
+        // MODIFIED: Verify hashed password for security
+        if (password_verify($pass, $row['password'])) {
+            $_SESSION['user'] = $user;
+            echo "Login successful!";
+        } else {
+            echo "Invalid credentials!";
+        }
     } else {
         echo "Invalid credentials!";
     }
+    
+    $stmt->close();
 }
+$conn->close();
+?>
+
 
 //This login system is susceptible to SQL injection due to the direct embedding of user inputs into the SQL query.
 //Make this a secure login
