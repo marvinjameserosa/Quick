@@ -1,3 +1,10 @@
+// Part 2. Defense
+
+//Modifications:
+// Use stored procedure to fetch user details securely
+
+
+
 <?php
 session_start();
 
@@ -19,8 +26,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $pass = $_POST['password'];
     
     // VULNERABLE QUERY (Allows SQL Injection)
-    $sql = "SELECT * FROM users WHERE username = '$user' AND password = '$pass'";
-    $result = $conn->query($sql);
+    // $sql = "SELECT * FROM users WHERE username = '$user' AND password = '$pass'";
+    // $result = $conn->query($sql);
+    
+    // MODIFIED: Use stored procedure to fetch user details securely
+    $stmt = $conn->prepare("CALL GetUserByUsername(?)");
+    $stmt->bind_param("s", $user);
+    $stmt->execute();
+    $result = $stmt->get_result();
     
     if ($result->num_rows > 0) {
         $_SESSION['user'] = $user;
